@@ -61,7 +61,7 @@ def print_db_size(subreddit, cursor):
     print('Number of comments in {} database: {}\n'.format(subreddit, rowcount))
 
 def stream_and_insert(subreddit, cursor):
-    """Continous stream of subreddit's comments, text wrapped to 60 characters for
+    """Continous stream of subreddit's comments, text wrapped to 120 characters for
     columnar reading"""
     print("\nBeginning comment stream for r/{}\n".format(subreddit.display_name))
     print('-----------------------------------------------------------')
@@ -72,8 +72,10 @@ def stream_and_insert(subreddit, cursor):
                     pass
                 else:
                     user, time, body = comment.author.name, comment.created_utc, "\n".join(
-                        textwrap.wrap(textwrap.dedent(comment.body).strip(), width=60))
+                        textwrap.wrap(textwrap.dedent(comment.body).strip(), width=120))
                     comment_id, post_title, post_id, url = comment.id, comment.link_title, comment.link_id, comment.link_url
+                    # extract urls
+                    # extract tickers
                     print('u/' + user + ":\n" + body)
                     print('-----------------------------------------------------------')
                     cursor.execute("""INSERT OR REPLACE INTO {} VALUES (?,?,?,?,?,?,?);""".format(subreddit),
