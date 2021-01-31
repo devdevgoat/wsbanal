@@ -10,20 +10,27 @@ def check_database_exists(subreddit):
     if not os.path.exists('../data/{}.db'.format(subreddit)):
         conn = sqlite3.connect('../data/{}.db'.format(subreddit))
         c = conn.cursor()
-        c.execute("""CREATE TABLE {}
-                         (user, time, comment, comment_id, post_title, post_id, url, UNIQUE(comment_id))""".format(
-            subreddit))
+        c.execute("""CREATE TABLE ents (text,label,count,timeId,UNIQUE (text,label,timeId))""".format(subreddit))
         conn.commit()
         conn.close()
 
 def proc_data(subreddit, cursor):
     print('getting rows')
-    rows = cursor.execute("SELECT * FROM wallstreetbets").fetchall()
+    rows = cursor.execute("SELECT * FROM wallstreetbets where proc='False' limit 100").fetchall()
     for row in rows:
         r = nlp(row['comment'])
-        print(f'-----{}------'.)
+        # print(f"-----{row['comment_id']}------")
+        commentTexts = []
+        commentLables = []
+        
         for ent in r.ents:
-            print(ent.text, ent.start_char, ent.end_char, ent.label_)
+            # print(ent.text, ent.label_)
+            commentTexts.append(ent.text)
+            commentLables.append(ent.label_)
+            cursor.execute(f"""Insert into ents (text, label,timeId, count) 
+                                values (?,?,{row['timeId']}, 1)
+                                on CONFLICT (text, label, timeId) DO UPDATE set count = count + 1""",(ent.text,ent.label_))
+        cursor.execute(f"""UPDATE wallstreetbets set proc="True", entTexts = ? ,entLabels = ?  where comment_id = '{row['comment_id']}'""",(str(commentTexts) ,str(commentLables)))
 
 doc = nlp("Apple is looking at buying U.K. startup for $1 billion. GME is valued much higher now!")
 
@@ -33,11 +40,12 @@ doc = nlp("Apple is looking at buying U.K. startup for $1 billion. GME is valued
 def main():
     subreddit = 'wallstreetbets'
     check_database_exists(subreddit)
-    conn = sqlite3.connect('../data/{}.db'.format(subreddit))
+    conn = sqlite3.connect('../data/{}.db'.format(subreddit), isolation_level=None)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    proc_data(subreddit=subreddit, cursor=c)
-    conn.commit()
+    while True:
+        proc_data(subreddit=subreddit, cursor=c)
+        conn.commit()
     conn.close()
 
 

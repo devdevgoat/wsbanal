@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 
+
 """This is a script to live stream reddit comments from any subreddit, and store the results in a sqlite database.
     Script can be run like "python redditstream-cli.py -s soccer" to initialize and start streaming/storing. The
     possibilities here are really interesting, you could do things like sentiment analysis or use the data for making
@@ -50,7 +51,7 @@ def check_database_exists(subreddit):
         conn = sqlite3.connect('../data/{}.db'.format(subreddit))
         c = conn.cursor()
         c.execute("""CREATE TABLE {}
-                         (user, time, comment, comment_id, post_title, post_id, url, UNIQUE(comment_id))""".format(
+                         (user, time, comment, comment_id, post_title, post_id, url, proc,timeId,entTexts,entLabels UNIQUE(comment_id))""".format(
             subreddit))
         conn.commit()
         conn.close()
@@ -78,8 +79,8 @@ def stream_and_insert(subreddit, cursor):
                     # extract tickers
                     print('u/' + user + ":\n" + body)
                     print('-----------------------------------------------------------')
-                    cursor.execute("""INSERT OR REPLACE INTO {} VALUES (?,?,?,?,?,?,?);""".format(subreddit),
-                              (user, time, body, comment_id, post_title, post_id, url))
+                    cursor.execute("""INSERT OR REPLACE INTO {} VALUES (?,?,?,?,?,?,?,?,?,?,strftime('%d%H', 'now'));""".format(subreddit),
+                              (user, time, body, comment_id, post_title, post_id, url, 'False','null','null'))
         except KeyboardInterrupt:
             print('\n\n***Breaking loop and saving database***')
             break
@@ -105,7 +106,7 @@ def main():
     reddit = authenticate()
     subreddit = reddit.subreddit(a_subreddit)
     check_database_exists(subreddit)
-    conn = sqlite3.connect('../data/{}.db'.format(subreddit))
+    conn = sqlite3.connect('../data/{}.db'.format(subreddit), isolation_level=None)
     c = conn.cursor()
     if not quiet_mode:
         stream_and_insert(subreddit=subreddit, cursor=c)
